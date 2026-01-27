@@ -120,10 +120,26 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && steps.compile.outputs.status == 'success'
       run: |
-        cd openwrt/bin/targets/*/*
+        # 从 DEVICE_NAME 提取 target 和 subtarget
+        # 示例: _airoha_en7523-evb → airoha / en7523
+        DEVICE_RAW=" $ {DEVICE_NAME#_}"          # 移除开头下划线 → airoha_en7523-evb
+        DEVICE_CLEAN=" $ {DEVICE_RAW%%-*}"       # 移除 -evb 后缀 → airoha_en7523
+        TARGET=" $ {DEVICE_CLEAN%_*}"            # airoha
+        SUBTARGET=" $ {DEVICE_CLEAN##*_}"        # en7523
+
+        FIRMWARE_DIR="openwrt/bin/targets/ $ TARGET/ $ SUBTARGET"
+
+        if [ ! -d " $ FIRMWARE_DIR" ]; then
+          echo "❌ Firmware directory not found:  $ FIRMWARE_DIR"
+          echo "Available directories:"
+          ls -la openwrt/bin/targets/
+          exit 1
+        fi
+
+        cd " $ FIRMWARE_DIR"
         rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
+        echo "FIRMWARE= $ PWD" >> " $ GITHUB_ENV"
+        echo "status=success" >> " $ GITHUB_OUTPUT"
 
     - name: Upload firmware directory
       uses: actions/upload-artifact@main
